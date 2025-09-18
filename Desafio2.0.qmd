@@ -1,0 +1,314 @@
+---
+title: "Desafio2.0"
+author: "Pedro Galhardo"
+format: 
+  html:
+    self-contained: true
+editor: visual
+---
+
+
+```{r}
+# Baixando um pacote para conseguir utilizar melhor o python
+library(reticulate)
+use_virtualenv("~/.virtualenvs/r-reticulate", required = TRUE)
+py_discover_config()
+
+
+reticulate::py_install("pandas", envname = NULL, python = "C:/Program Files/Python312/python.exe")
+```
+
+
+
+1
+
+```{python}
+# Estatísticas suficientes para determinar o percentual de voos atrasados na chegada (ARRIVAL_DELAY > 10):
+
+# a) Número total de voos (para cada combinação de dia/mês/cia aérea).
+# b) Número de voos atrasados (dentre os acima) com ARRIVAL_DELAY > 10.
+
+```
+
+
+2
+
+```{python}
+import pandas as pd  # Importa a biblioteca pandas para manipulação de dados
+
+# Definição da função getStats em Python
+def getStats(input, pos):  # Define a função getStats que recebe um DataFrame (input) e um argumento pos (não utilizado)
+    """
+    Função que filtra e calcula estatísticas de atraso para companhias aéreas específicas.
+    
+    Parâmetros:
+    - input : DataFrame pandas com os dados de voos
+    - pos   : argumento posicional (não usado, mas mantido por compatibilidade)
+    
+    Retorna:
+    - DataFrame agrupado com as colunas:
+        AIRLINE : companhia aérea (AA, DL, UA, US)
+        DAY     : dia do mês
+        MONTH   : mês
+        n       : número total de voos no grupo
+        atrasos : número de voos atrasados (ARRIVAL_DELAY > 10)
+    """
+    
+    # Filtrar companhias aéreas específicas (AA, DL, UA, US)
+    # e excluir registros em que ARRIVAL_DELAY é nulo
+    filtrado = input[
+        (input["AIRLINE"].isin(["AA", "DL", "UA", "US"])) &  # Mantém apenas essas companhias
+        (input["ARRIVAL_DELAY"].notna())                     # Remove registros sem informação de atraso
+    ]
+    
+    # Agrupar os dados filtrados por companhia aérea, dia e mês
+    agrupado = (
+        filtrado
+        .groupby(["AIRLINE", "DAY", "MONTH"])  # Cria grupos de dados por AIRLINE, DAY e MONTH
+        .agg(
+            n=("ARRIVAL_DELAY", "size"),                       # Conta o número total de voos em cada grupo
+            atrasos=("ARRIVAL_DELAY", lambda x: (x > 10).sum()) # Conta quantos voos tiveram atraso maior que 10
+        )
+        .reset_index()  # Reseta o índice para transformar colunas agrupadas em colunas normais
+    )
+    
+    return agrupado  # Retorna o DataFrame resultante com as estatísticas calculadas
+
+```
+
+
+
+3
+
+```{python}
+import pandas as pd  # Importa a biblioteca pandas para manipulação de dados
+import time          # Importa a biblioteca time para medir tempo de execução
+
+# Medir tempo de execução
+start = time.time()  # Marca o tempo inicial da execução
+print("Importando com 100 mil registros por vez...")  # Mensagem inicial
+
+# Criar uma lista para acumular os resultados dos chunks
+resultados = []  # Lista vazia que armazenará os resultados processados
+
+# Leitura em chunks de 100.000 registros
+for chunk in pd.read_csv(                 # Lê o arquivo em partes (chunks)
+    "../dados/flights.csv.zip",           # Caminho do arquivo ZIP com os dados
+    compression="zip",                    # Indica que o arquivo está compactado em ZIP
+    usecols=["AIRLINE", "DAY", "MONTH", "ARRIVAL_DELAY"],  # Seleciona apenas essas colunas
+    chunksize=100000,                     # Lê 100 mil linhas por vez
+    low_memory=False                      # Evita problemas de inferência de tipos
+):
+    # aplica a função getStats em cada pedaço
+    res = getStats(chunk, pos=None)  # Chama a função getStats para processar o chunk
+    resultados.append(res)           # Adiciona o resultado do chunk à lista
+
+# Concatenar todos os resultados em um único DataFrame
+in3 = pd.concat(resultados, ignore_index=True)  # Junta todos os DataFrames em um só
+
+end = time.time()  # Marca o tempo final da execução
+print(f"Tempo decorrido: {end - start:.2f} segundos")  # Exibe o tempo total gasto
+
+```
+
+
+
+4
+
+```{python}
+def computeStats(input_df):  # Define a função computeStats que recebe um DataFrame
+    """
+    Calcula a proporção de voos atrasados por AIRLINE, DAY, MONTH.
+    
+    Parâmetros:
+    - input_df : DataFrame com as colunas [AIRLINE, DAY, MONTH, n, atrasos]
+    
+    Retorna:
+    - DataFrame com colunas [AIRLINE, Data, Perc]
+    """
+    
+    # Agrupar e calcular a soma de atrasos e total de voos
+    agrupado = (
+        input_df
+        .groupby(["AIRLINE", "DAY", "MONTH"])  # Agrupa por companhia, dia e mês
+        .agg(
+            Perc=("atrasos", "sum"),  # Soma do número de voos atrasados
+            Total=("n", "sum")        # Soma do número total de voos
+        )
+        .reset_index()  # Reseta o índice para manter as colunas no DataFrame
+    )
+    
+    # Criar a coluna percentual de atrasos em relação ao total
+    agrupado["Perc"] = agrupado["Perc"] / agrupado["Total"]
+    
+    # Criar a coluna de datas, fixando o ano em 2015
+    agrupado["Data"] = pd.to_datetime(  # Converte para formato de data
+        dict(year=2015, month=agrupado["MONTH"], day=agrupado["DAY"])
+    )
+    
+    # Selecionar apenas as colunas finais de interesse
+    resultado = agrupado[["AIRLINE", "Data", "Perc"]]
+    
+    return resultado  # Retorna o DataFrame final com os percentuais de atraso
+
+
+# Aplicar a função sobre o DataFrame in3
+in5 = computeStats(in3)  # Cria o DataFrame in5 a partir do resultado da função computeStats
+
+```
+
+
+
+5
+
+```{r}
+reticulate::py_install("calplot", envname = NULL, python = "C:/Program Files/Python312/python.exe")
+
+```
+
+
+
+```{python}
+import matplotlib.pyplot as plt  # Biblioteca para visualização de gráficos
+import seaborn as sns            # Biblioteca para gráficos estatísticos (heatmaps)
+import calendar                  # Biblioteca padrão para manipulação de calendários
+import numpy as np               # Biblioteca para cálculo numérico e arrays
+import pandas as pd              # Biblioteca para manipulação de dados
+
+def baseCalendario_mensal(stats, cia, vmax=0.6):  # Função que cria o calendário mensal com números dos dias
+    """
+    Calendário mensal (12 subplots), dia 1 sempre na parte superior.
+    """
+    # Seleciona apenas os dados da companhia escolhida e cria uma série indexada por Data com os valores de Perc
+    s = (stats[stats["AIRLINE"] == cia]
+         .set_index("Data")["Perc"])
+
+    # Cria a figura com 12 subplots (3 linhas x 4 colunas), cada subplot representa um mês
+    fig, axes = plt.subplots(3, 4, figsize=(12, 8))
+    axes = axes.flatten()  # Transforma em vetor para facilitar iteração mês a mês
+
+    # Loop para cada mês do ano
+    for month in range(1, 13):
+        ax = axes[month-1]  # Seleciona o subplot correspondente ao mês
+
+        # Obtém o primeiro dia da semana (segunda=0..domingo=6) e o número de dias do mês
+        first_wd_mon0, n_days = calendar.monthrange(2015, month)
+        # Converte para formato "domingo=0..sábado=6"
+        first_wd_sun0 = (first_wd_mon0 + 1) % 7
+
+        # Calcula o número de semanas (linhas da matriz) necessárias para o calendário
+        n_weeks = int(np.ceil((first_wd_sun0 + n_days) / 7.0))
+        # Cria matriz do mês preenchida com NaN (vai armazenar os valores de Perc por dia)
+        cal = np.full((n_weeks, 7), np.nan, dtype=float)
+
+        # Dicionário que guarda em que posição (linha,coluna) vai cada número de dia
+        positions = {}
+        for d in range(1, n_days + 1):  # Itera sobre os dias do mês
+            wd_mon0 = calendar.weekday(2015, month, d)  # Dia da semana (Mon=0..Sun=6)
+            c = (wd_mon0 + 1) % 7                       # Converte para "domingo primeiro"
+            r = (first_wd_sun0 + (d - 1)) // 7          # Linha da semana em que o dia cai
+            ts = pd.Timestamp(2015, month, d)           # Cria timestamp do dia
+            cal[r, c] = s.get(ts, np.nan)               # Coloca o valor de Perc no calendário
+            positions[(r, c)] = d                       # Salva onde escrever o número do dia
+
+        # Cria o heatmap do mês com o calendário de valores
+        sns.heatmap(
+            cal, ax=ax, cmap="RdYlBu_r", cbar=False,     # Sem barra de cor individual
+            linewidths=0.5, linecolor="white", vmin=0, vmax=vmax,
+            annot=False
+        )
+
+        # Escreve os números dos dias no centro de cada célula do heatmap
+        for (r, c), d in positions.items():
+            ax.text(c+0.5, r+0.5, str(d),
+                    ha="center", va="center",
+                    fontsize=7, color="black", weight="bold")
+
+        # Ajustes visuais de cada subplot
+        ax.set_title(calendar.month_name[month], fontsize=10, pad=6)  # Título com nome do mês
+        ax.set_xticks(np.arange(7) + 0.5)                             # Centraliza os ticks
+        ax.set_xticklabels(["S", "M", "T", "W", "T", "F", "S"])       # Abreviação dos dias da semana
+        ax.set_yticks([])                                             # Remove rótulos do eixo Y
+        ax.set_xlabel("")                                             # Remove label eixo X
+        ax.set_ylabel("")                                             # Remove label eixo Y
+
+    # Título geral do gráfico
+    plt.suptitle(f"{cia} - Percentual de Atrasos (2015)", fontsize=16)
+    # Ajusta layout para não sobrepor elementos
+    plt.tight_layout(rect=[0, 0, 0.95, 0.95])
+    # Adiciona um único eixo para a colorbar na direita
+    cbar_ax = fig.add_axes([0.965, 0.15, 0.02, 0.7])
+    # Cria o mapeador de cores para a escala 0 → vmax
+    sm = plt.cm.ScalarMappable(cmap="RdYlBu_r", norm=plt.Normalize(vmin=0, vmax=vmax))
+    sm.set_array([])  # Necessário para a colorbar funcionar
+    # Cria a colorbar compartilhada
+    plt.colorbar(sm, cax=cbar_ax, label="Percentual de atrasos")
+    # Exibe o gráfico
+    plt.show()
+
+
+def baseCalendario_mensal_sem_numeros(stats, cia, vmax=0.6):  # Função igual, mas sem mostrar números dos dias
+    """
+    Versão sem números dos dias dentro dos quadrados do calendário.
+    """
+    # Filtra dados da companhia e indexa por Data
+    s = (stats[stats["AIRLINE"] == cia]
+         .set_index("Data")["Perc"])
+
+    # Cria figura com 12 subplots (1 por mês)
+    fig, axes = plt.subplots(3, 4, figsize=(12, 8))
+    axes = axes.flatten()
+
+    for month in range(1, 13):  # Itera meses do ano
+        ax = axes[month-1]
+
+        first_wd_mon0, n_days = calendar.monthrange(2015, month)
+        first_wd_sun0 = (first_wd_mon0 + 1) % 7
+
+        n_weeks = int(np.ceil((first_wd_sun0 + n_days) / 7.0))
+        cal = np.full((n_weeks, 7), np.nan, dtype=float)
+
+        for d in range(1, n_days + 1):  # Itera os dias do mês
+            wd_mon0 = calendar.weekday(2015, month, d)
+            c = (wd_mon0 + 1) % 7
+            r = (first_wd_sun0 + (d - 1)) // 7
+            ts = pd.Timestamp(2015, month, d)
+            cal[r, c] = s.get(ts, np.nan)
+
+        # Heatmap sem os números dos dias
+        sns.heatmap(
+            cal, ax=ax, cmap="RdYlBu_r", cbar=False,
+            linewidths=0.5, linecolor="white", vmin=0, vmax=vmax,
+            annot=False
+        )
+
+        # Ajustes visuais (mesmos do anterior)
+        ax.set_title(calendar.month_name[month], fontsize=10, pad=6)
+        ax.set_xticks(np.arange(7) + 0.5)
+        ax.set_xticklabels(["S", "M", "T", "W", "T", "F", "S"])
+        ax.set_yticks([])
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+
+    # Título geral e colorbar única
+    plt.suptitle(f"{cia} - Percentual de Atrasos (2015)", fontsize=16)
+    plt.tight_layout(rect=[0, 0, 0.95, 0.95])
+    cbar_ax = fig.add_axes([0.965, 0.15, 0.02, 0.7])
+    sm = plt.cm.ScalarMappable(cmap="RdYlBu_r", norm=plt.Normalize(vmin=0, vmax=vmax))
+    sm.set_array([])
+    plt.colorbar(sm, cax=cbar_ax, label="Percentual de atrasos")
+    plt.show()
+
+
+# Exemplos de uso
+baseCalendario_mensal(in5, "AA")             # Gera calendário com números dos dias
+baseCalendario_mensal_sem_numeros(in5, "AA") # Gera calendário sem números dos dias
+
+```
+
+
+
+
+
+
+

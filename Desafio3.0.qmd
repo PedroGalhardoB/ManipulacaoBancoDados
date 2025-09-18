@@ -1,0 +1,41 @@
+---
+title: "Desafio3"
+author: "Pedro Galhardo"
+format: html
+editor: visual
+---
+
+```{r}
+# Instalando os pacotes que irei utilizar:
+install.packages("arrow")
+install.packages("jsonlite")
+```
+
+```{r}
+# Carregando os pacotes instalados:
+library(arrow)
+library(jsonlite)
+```
+
+```{r}
+# Lendo e importando o arquivo em Parquet:
+dados_p <- read_parquet("../dados/daily_weather.parquet")
+
+```
+
+```{r}
+# Lendo e importando o arquivo em Json:
+dados_j <- fromJSON("../dados/electric_vehicles_dataset.json")
+```
+
+```{r}
+# Aqui mostra que os objetos são data frames:
+str(dados_p)
+str(dados_j)
+
+
+# Com isso podemos verificar que os objetos realmente são data frames.
+```
+ 
+
+
