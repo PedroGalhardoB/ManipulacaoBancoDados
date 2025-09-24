@@ -2,39 +2,94 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Índice do Site</title>
+  <title>Portfólio de Desafios - Pedro Galhardo Barbosa</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f9;
+      color: #333;
     }
-    ul {
-      list-style-type: none;
+    header {
+      background: #004080;
+      color: white;
+      padding: 20px;
+      text-align: center;
     }
-    li {
-      margin: 10px 0;
+    header h1 {
+      margin: 0;
+      font-size: 28px;
     }
-    a {
+    header p {
+      margin: 5px 0 0;
+      font-size: 16px;
+    }
+    main {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h2 {
+      margin-bottom: 20px;
+      border-left: 5px solid #004080;
+      padding-left: 10px;
+      color: #004080;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .card a {
       text-decoration: none;
-      color: blue;
+      color: #004080;
+      font-weight: bold;
+      font-size: 18px;
     }
-    a:hover {
-      text-decoration: underline;
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #eee;
+      margin-top: 40px;
+      font-size: 14px;
+      color: #555;
     }
   </style>
 </head>
 <body>
-  <h1>Bem-vindo!</h1>
-  <p>Desafios:</p>
-  <ul>
-    <li><a href="Desafio1.0.html">Desafio 1</a></li>
-    <li><a href="Desafio2.0.html">Desafio 2</a></li>
-    <li><a href="Desafio3.0.pdf">Desafio 3</a></li>
-    <li><a href="Desafio_04 (2).html">Desafio 4</a></li>
-    <li><a href="Desafio5.0.html">Desafio 5</a></li>
-    <li><a href="lab.desafio6.html">Desafio 6</a></li>
-    <li><a href="lab.desafio7.html">Desafio 7</a></li>
-    <li><a href="Desafio8.html">Desafio 8.0</a></li>
-  </ul>
+  <header>
+    <h1>Portfólio de Desafios</h1>
+    <p>Pedro Galhardo Barbosa | RA: xxxxxx</p>
+  </header>
+
+  <main>
+    <h2>Lista de Desafios</h2>
+    <div class="grid">
+      <div class="card"><a href="Desafio1.0.html">Desafio 1</a></div>
+      <div class="card"><a href="Desafio2.0.html">Desafio 2</a></div>
+      <div class="card"><a href="Desafio3.0.pdf">Desafio 3</a></div>
+      <div class="card"><a href="Desafio_04 (2).html">Desafio 4</a></div>
+      <div class="card"><a href="Desafio5.0.html">Desafio 5</a></div>
+      <div class="card"><a href="lab.desafio6.html">Desafio 6</a></div>
+      <div class="card"><a href="lab.desafio7.html">Desafio 7</a></div>
+      <div class="card"><a href="Desafio8.html">Desafio 8</a></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Trabalhos desenvolvidos para disciplina — 2025</p>
+  </footer>
 </body>
 </html>
