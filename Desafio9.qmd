@@ -1,0 +1,120 @@
+---
+title: "Desafio9"
+author: "Pedro Galhardo"
+format:
+  html:
+    self-contained: true
+editor: visual
+---
+
+Comando recomendado para instalar os pacotes:
+```{r}
+#install.packages(c("readr", "RSQLite"), dep=TRUE, type='win.binary')
+```
+
+Pacotes pedidos:
+```{r}
+# Carregar pacotes necessários
+library(readr)
+library(RSQLite)
+```
+
+## ITEM 1:
+```{r}
+# Criar conexão com o banco de dados
+# Se o arquivo não existir, ele será criado automaticamente
+con <- dbConnect(SQLite(), "voos.sqlite3")
+
+# Verificar se a conexão foi feita
+print(con)
+```
+
+## ITEM 2:
+```{r}
+airlines <- read_csv("../dados/airlines.csv")
+airports <- read_csv("../dados/airports.csv")
+
+# Gravar no banco de dados em tabelas separadas
+dbWriteTable(con, "airlines", airlines, overwrite = TRUE)
+dbWriteTable(con, "airports", airports, overwrite = TRUE)
+
+# Conferir quais tabelas existem agora no banco
+dbListTables(con)
+```
+
+## ITEM 3:
+```{r}
+# Função para já selecionar as colunas desejadas
+lerDados <- function(input, pos) {
+  # Mensagem de progresso
+  message("Leitura atingiu a linha ", pos)
+  
+  # Selecionar só as colunas de interesse
+  input <- input[, c(
+    "YEAR", "MONTH", "DAY", "AIRLINE", "FLIGHT_NUMBER",
+    "ORIGIN_AIRPORT", "DESTINATION_AIRPORT", "ARRIVAL_DELAY"
+  )]
+  
+  # Lista de aeroportos de interesse
+  aeroportos_filtro <- c("BWI", "MIA", "SEA", "SFO", "JFK")
+  
+  # Filtrar apenas linhas com origem ou destino nesses aeroportos
+  dados_filtrados <- input[
+    input$ORIGIN_AIRPORT %in% aeroportos_filtro |
+      input$DESTINATION_AIRPORT %in% aeroportos_filtro, 
+  ]
+  
+  # Gravar no banco (append = TRUE para acumular os chunks)
+  if (nrow(dados_filtrados) > 0) {
+    dbWriteTable(con, "flights", dados_filtrados, append = TRUE)
+  }
+  
+  invisible(NULL)
+}
+```
+
+## ITEM 4:
+```{r}
+# Callback que usa a função lerDados
+callback <- SideEffectChunkCallback$new(lerDados)
+
+# Ler flights.csv em chunks de 100 mil linhas
+read_csv_chunked(
+  file = "../dados/flights.csv",
+  callback = callback,
+  chunk_size = 100000
+)
+```
+
+## ITEM 5:
+```{r}
+# Consulta SQL completa com JOINs nas outras tabelas
+query <- "
+SELECT 
+    f.DESTINATION_AIRPORT as sigla_aeroporto,
+    a.AIRPORT as nome_completo_aeroporto,
+    al.AIRLINE as nome_completo_companhia,
+    AVG(f.ARRIVAL_DELAY) AS media_atraso
+FROM flights f
+LEFT JOIN airports a ON f.DESTINATION_AIRPORT = a.IATA_CODE
+LEFT JOIN airlines al ON f.AIRLINE = al.IATA_CODE
+GROUP BY f.DESTINATION_AIRPORT, a.AIRPORT, al.AIRLINE
+ORDER BY media_atraso DESC;
+"
+
+# Executar consulta no banco
+resultados <- dbGetQuery(con, query)
+
+# Mostrar as primeiras linhas
+head(resultados, 10)
+```
+
+Desconecta e Salva a data:
+```{r}
+# Desconectando da conexão conn
+dbDisconnect(con)
+
+# Salvando a data e o horário em que o html foi gerado
+Sys.time()
+```
+
