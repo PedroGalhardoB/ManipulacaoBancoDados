@@ -1,0 +1,218 @@
+---
+title: "Desafio 11"
+author: "Pedro Galhardo"
+format: 
+  html:
+    self-contained: true
+editor: visual
+---
+
+```{python}
+import polars as pl
+```
+
+```{r}
+reticulate::py_config()
+```
+
+## QUESTÃO 1:
+
+```{python}
+colunas = [
+    "age", "workclass", "fnlwgt", "education", "education-num",
+    "marital-status", "occupation", "relationship", "race", "sex",
+    "capital-gain", "capital-loss", "hours-per-week",
+    "native-country", "income"
+]
+tipos = {
+    "age": pl.Int64,
+    "workclass": pl.Categorical,
+    "fnlwgt": pl.Int64,
+    "education": pl.Categorical,
+    "education-num": pl.Int64,
+    "marital-status": pl.Categorical,
+    "occupation": pl.Categorical,
+    "relationship": pl.Categorical,
+    "race": pl.Categorical,
+    "sex": pl.Categorical,
+    "capital-gain": pl.Int64,
+    "capital-loss": pl.Int64,
+    "hours-per-week": pl.Int64,
+    "native-country": pl.Categorical,
+    "income": pl.Categorical
+}
+# Importar o arquivo compactado
+df = pl.read_csv(
+    "../dados/renda_adulta.csv.gz",  # caminho da pasta "dados"
+    has_header = False,
+    new_columns=colunas,          # define os nomes das colunas
+    schema_overrides=tipos,       # define os tipos de cada coluna
+    null_values="?"               # substitui "?" por nulos
+)
+df.head()
+df.schema
+```
+
+## QUESTÃO 2:
+
+```{python}
+# Mostra o tipo de dado (schema) de cada coluna
+df.schema
+```
+
+## QUESTÃO 3:
+
+```{python}
+# Obter dimensões
+linhas, colunas = df.shape
+print(f"Número de linhas: {linhas}")
+print(f"Número de colunas: {colunas}")
+```
+
+## QUESTÃO 4:
+
+```{python}
+# Contagem de pessoas por categoria de renda
+contagem_renda = df["income"].value_counts()
+contagem_renda
+```
+
+## QUESTÃO 5:
+
+```{python}
+import polars as pl
+
+# Lista das colunas que não serão transformadas
+id_cols = [col for col in df.columns if col not in ["capital-gain", "capital-loss"]]
+
+# Criar DataFrame longo manualmente
+gain = df.select(id_cols + [pl.col("capital-gain").alias("Valor")]).with_columns(
+    pl.lit("gain").alias("tipo")
+)
+
+loss = df.select(id_cols + [pl.col("capital-loss").alias("Valor")]).with_columns(
+    pl.lit("loss").alias("tipo")
+)
+
+# Concatenar os dois DataFrames
+renda_longo = pl.concat([gain, loss])
+
+# Verificar
+renda_longo.head()
+```
+
+## QUESTÃO 6:
+
+```{python}
+# Média de horas trabalhadas por classe salarial
+media_horas = (
+    df.group_by("income")
+      .agg(
+          pl.col("hours-per-week").mean().alias("media_horas")
+      )
+      .sort("income")
+)
+
+media_horas
+```
+
+## QUESTÃO 7:
+
+```{python}
+pessoas_por_profissao = (
+    df.group_by("occupation")  # Agrupa por profissão
+    .agg(pl.len().alias("quantidade_pessoas")  # Conta o número de pessoas em cada profissão
+    )
+    .sort("quantidade_pessoas", descending=True)  # Ordena da maior para a menor quantidade
+)
+
+print("Quantidade de pessoas amostradas em cada profissão:")
+print(pessoas_por_profissao)
+```
+
+## QUESTÃO 8:
+
+```{python}
+import matplotlib.pyplot as plt
+
+# Calcular a média de horas por nível salarial
+media_horas = (
+    df.group_by("income")
+      .agg(pl.col("hours-per-week").mean().alias("media_horas"))
+      .sort("income")
+)
+
+# Converter para Pandas para usar Matplotlib
+media_horas_pd = media_horas.to_pandas()
+
+# Criar gráfico de barras
+plt.figure(figsize=(6,4))
+plt.bar(media_horas_pd["income"], media_horas_pd["media_horas"], color=["skyblue", "orange"])
+plt.title("Média de horas trabalhadas por nível salarial")
+plt.xlabel("Nível salarial")
+plt.ylabel("Média de horas por semana")
+plt.show()
+
+```
+
+## DESAFIO (QUESTÃO 9):
+
+```{python}
+# Contagem de homens e mulheres por classe salarial
+genero_renda = (
+    df.group_by(["sex", "income"])
+      .agg(pl.count().alias("n_pessoas"))
+      .sort(["sex", "income"])
+)
+
+genero_renda
+
+# Total de cada gênero
+total_genero = df.group_by("sex").agg(pl.len().alias("total"))
+
+# Pessoas com >50K por gênero
+acima_50k = df.filter(pl.col("income")==">50K").group_by("sex").agg(pl.len().alias("acima_50k"))
+
+# Juntar e calcular proporção
+discriminacao = total_genero.join(acima_50k, on="sex")
+discriminacao = discriminacao.with_columns(
+    (pl.col("acima_50k") / pl.col("total") * 100).alias("perc_acima_50k")
+)
+
+discriminacao
+
+import matplotlib.pyplot as plt
+
+# Converter para Pandas
+discriminacao_pd = discriminacao.to_pandas()
+
+# Gráfico de barras
+plt.figure(figsize=(6,4))
+bars = plt.bar(discriminacao_pd["sex"], discriminacao_pd["perc_acima_50k"], color=["skyblue", "orange"])
+
+plt.title("Proporção de pessoas ganhando >50K por gênero")
+plt.ylabel("Percentual (%)")
+plt.xlabel("Gênero")
+plt.ylim(0, 40)
+
+# Adicionar os valores em cima das barras
+for bar in bars:
+    altura = bar.get_height()
+    plt.text(
+        bar.get_x() + bar.get_width()/2,  # posição x (centro da barra)
+        altura + 1,                        # posição y (um pouco acima da barra)
+        f'{altura:.1f}%',                  # texto (ex.: 10.4%)
+        ha='center',                        # centralizar horizontalmente
+        fontsize=10
+    )
+
+plt.show()
+
+```
+
+Através dos gráficos e das tabelas, é possível identificar uma grande diferença entre a quantidade de homens com salários acima de 50K e as mulheres. Cerca de 30% dos homens recebem um salário maior do que 50K, enquanto, apenas 11% das mulheres possuem um salário acima desse valor. Portanto, é notável uma possível discriminação salarial entre os gêneros biológicos.
+
+```{r}
+# Salvando a data e o horário em que o html foi gerado
+Sys.time()
+```
