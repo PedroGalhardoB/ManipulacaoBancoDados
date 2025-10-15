@@ -1,0 +1,171 @@
+---
+title: "Desafio 13"
+author: "Pedro Galhardo"
+format: 
+  html:
+    self-contained: true
+editor: visual
+---
+
+```{r}
+library(reticulate)
+
+# Criar o ambiente virtual
+virtualenv_create("r-reticulate")
+```
+
+```{r}
+use_virtualenv("r-reticulate", required = TRUE)
+```
+
+```{python}
+#!pip install pyarrow
+```
+
+```{python}
+import polars as pl
+import sqlite3
+import gzip 
+import pyarrow
+import pandas as pd
+```
+
+## Item 1:
+
+```{python}
+# 1. Ler arquivos
+basics = pl.read_csv("../dados/title.basics0.tsv.gz", separator="\t", null_values="\\N")
+ratings = pl.read_csv("../dados/title.ratings.tsv.gz", separator="\t", null_values="\\N")
+principals = pl.read_csv("../dados/title.principals0.tsv.gz", separator="\t", null_values="\\N")
+```
+
+```{python}
+# Função para gravar em partes (evita estouro de RAM)
+def salvar_em_chunks(df, tabela, con, chunk_size=100_000):
+    n = df.height
+    for i in range(0, n, chunk_size):
+        print(f"Gravando {tabela}: linhas {i} a {min(i + chunk_size, n)}")
+        chunk = df.slice(i, chunk_size).to_pandas()
+        chunk.to_sql(tabela, con, if_exists="append" if i > 0 else "replace", index=False)
+```
+
+```{python}
+con = sqlite3.connect("../dados/movies.sqlite3")
+
+# Usar a função de chunks que você já criou
+print("Salvando basics em chunks...")
+salvar_em_chunks(basics, "basics", con, chunk_size=100000)
+
+print("Salvando ratings em chunks...")
+salvar_em_chunks(ratings, "ratings", con, chunk_size=100000)
+
+print("Salvando principals em chunks...")
+salvar_em_chunks(principals, "principals", con, chunk_size=100000)
+
+# Consulta para verificar as tabelas
+tabelas = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table';", con)
+print("Tabelas criadas no banco:")
+print(tabelas)
+```
+
+## Item 2:
+
+```{python}
+query = """
+SELECT
+b.primaryTitle AS titulo,
+r.averageRating AS nota_media,
+r.numVotes AS votos
+FROM ratings AS r
+JOIN basics AS b
+ON r.tconst = b.tconst
+WHERE b.titleType = 'movie'
+ORDER BY r.averageRating DESC, r.numVotes DESC
+LIMIT 5;
+"""
+
+top5 = pd.read_sql_query(query, con)
+print(top5)
+```
+
+## Item 3:
+
+```{python}
+query = """
+WITH RECURSIVE generos_separados(genero, restante) AS (
+    SELECT 
+        CASE 
+            WHEN INSTR(genres, ',') > 0 
+            THEN SUBSTR(genres, 1, INSTR(genres, ',') - 1)
+            ELSE genres
+        END as genero,
+        CASE 
+            WHEN INSTR(genres, ',') > 0 
+            THEN SUBSTR(genres, INSTR(genres, ',') + 1)
+            ELSE ''
+        END as restante
+    FROM basics b
+    JOIN ratings r ON b.tconst = r.tconst
+    WHERE r.averageRating > 8
+      AND b.genres IS NOT NULL
+      AND b.genres != ''
+    
+    UNION ALL
+    
+    SELECT
+        CASE 
+            WHEN INSTR(restante, ',') > 0 
+            THEN SUBSTR(restante, 1, INSTR(restante, ',') - 1)
+            ELSE restante
+        END,
+        CASE 
+            WHEN INSTR(restante, ',') > 0 
+            THEN SUBSTR(restante, INSTR(restante, ',') + 1)
+            ELSE ''
+        END
+    FROM generos_separados
+    WHERE restante != ''
+)
+SELECT 
+    TRIM(genero) as genero,
+    COUNT(*) as quantidade
+FROM generos_separados
+WHERE genero != '' AND genero IS NOT NULL
+GROUP BY TRIM(genero)
+ORDER BY quantidade DESC
+LIMIT 1;
+"""
+
+# Executa a consulta
+resultado = pd.read_sql_query(query, con)
+resultado.index = resultado.index + 1
+print(resultado)
+```
+
+## Item 4:
+
+```{python}
+query = """
+SELECT 
+    p.nconst AS id_pessoa,
+    p.category AS categoria,
+    COUNT(DISTINCT p.tconst) AS qtd_filmes
+FROM principals AS p
+JOIN ratings AS r ON p.tconst = r.tconst
+WHERE r.averageRating > 7.5
+  AND p.category IN ('actor', 'actress')
+GROUP BY p.nconst, p.category
+ORDER BY qtd_filmes DESC
+LIMIT 3;
+"""
+
+# Executa a consulta e exibe o resultado
+top3 = pd.read_sql_query(query, con)
+top3.index = top3.index + 1  # Para começar a numeração em 1
+print(top3)
+```
+
+```{r}
+# Salvando a data e o horário em que o html foi gerado
+Sys.time()
+```
