@@ -1,0 +1,101 @@
+---
+title: "Untitled"
+author: "Pedro Galhardo"
+format: 
+  html:
+    self-contained: true
+editor: visual
+---
+
+## DESAFIO 14
+
+## ITEM 1:
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+# Ler o arquivo diamonds.csv.gz
+diamonds <- read_csv("../dados/diamonds.csv.gz")
+
+# Verificar as dimensões do conjunto de dados
+dim(diamonds)
+
+# Visualizar as 6 primeiras linhas
+head(diamonds)
+```
+
+## ITEM 2:
+
+```{r}
+# Gráfico de dispersão entre peso (carat) e preço (price)
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point(alpha = 0.3, color = "#2C3E50") +
+  geom_smooth(method = "loess", se = FALSE, color = "#E74C3C", linewidth = 1) +
+  labs(
+    title = "Relação entre Peso (Carat) e Preço (Price) dos Diamantes",
+    x = "Peso (carat)",
+    y = "Preço (USD)",
+    caption = "Fonte: Dataset diamonds"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+O gráfico revela uma relação positiva e não linear entre o peso e o preço dos diamantes. À medida que o peso aumenta, o preço cresce, mostrando que diamantes maiores têm valor desproporcionalmente mais alto (não é uma reta linear). Entretanto, há alta variabilidade nos preços de diamantes de mesmo peso, especialmente nos maiores, sugerindo que outros atributos de qualidade, como clareza, qualidade do corte e cor do diamante, também exercem grande influência.
+
+
+## ITEM 3:
+
+```{r}
+# Carregar o pacote necessário
+library(ggplot2)
+
+# Gráfico de dispersão facetado por tipo de corte
+ggplot(diamonds, aes(x = carat, y = price, color = cut)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(se = FALSE, linewidth = 1, color = "black") +
+  facet_wrap(~ cut) +
+  labs(
+    title = "Relação entre Peso (Carat) e Preço (Price) por Tipo de Corte",
+    x = "Peso (carat)",
+    y = "Preço (USD)",
+    caption = "Fonte: Dataset diamonds"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+
+```
+
+Os gráficos revelam que a relação entre valor e preço continua positiva em todos os casos, entretanto, o valor fica mais estável em relação ao peso (aumenta menos ou nem aumenta), quanto maior é a qualidade do corte. É visível também que diamantes com cortes mais nobre possuem um valor agregado maior quando comparado aos outros cortes (com o mesmo peso), indicando que ele é uma variável que impacta diretamente no valor do diamante.
+
+
+## ITEM 4:
+
+```{r warning=FALSE, message=FALSE}
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_smooth(aes(color = color), method = "loess", se = TRUE) +
+  facet_grid(cut ~ clarity) +
+  labs(
+    title = "Relação Preço-Peso por Qualidade do Diamante",
+    subtitle = "Linhas de tendência mostram variação entre categorias",
+    x = "Peso (carat)", y = "Preço (USD)", color = "Cor"
+  ) +
+  scale_y_continuous(labels = scales::dollar) +
+  theme_minimal()
+```
+
+Criar um gráfico que analise tantas variáveis de uma só vez é difícil e, muitas vezes, ineficaz. A maior dificuldade foi encontrar uma forma de correlacionar todas as variáveis de forma que a vizualização continue clara. 
+Observa-se, através das linhas coloridas, a cor "J" (representada por rosa), é a cor mais barata de diamante, pois é a curva mais baixa na maioria das observações. Também é visível que a clareza impacta diretamente no valor do diamante (as curvas aumentam mais rápido quanto maior a clareza dos diamantes).
+
+
+
+```{r}
+# Salvando a data e o horário em que o html foi gerado
+Sys.time()
+```
+
+
+
