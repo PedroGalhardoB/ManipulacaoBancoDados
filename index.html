@@ -36,6 +36,12 @@
     .card:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     .card a { text-decoration: none; color: #004080; font-weight: bold; font-size: 18px; display: block; }
     footer { text-align: center; padding: 20px; background: #eee; margin-top: 40px; font-size: 14px; color: #555; }
+    
+    /* Estilo para links externos */
+    .external-link::after {
+      content: " ↗";
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -89,11 +95,21 @@
       <div class="card"><a href="Desafio12.qmd">Desafio 12</a></div>
       <div class="card"><a href="Desafio13.qmd">Desafio 13</a></div>
       <div class="card"><a href="Desafio14.qmd">Desafio 14</a></div>
-      <div class="card"><a href="Desafio15.ipynb">Desafio 15</a></div>
-      <div class="card"><a href="Desafio15.1.ipynb">Desafio 15.1</a></div>
-
       
-          </div>
+      <!-- Links atualizados para Google Colab -->
+      <div class="card">
+        <a href="https://colab.research.google.com/github/PedroGalhardoB/ManipulacaoBancoDados/blob/main/Desafio15.ipynb" 
+           target="_blank" class="external-link">
+          Desafio 15
+        </a>
+      </div>
+      <div class="card">
+        <a href="https://colab.research.google.com/github/PedroGalhardoB/ManipulacaoBancoDados/blob/main/Desafio15.1.ipynb" 
+           target="_blank" class="external-link">
+          Desafio 15.1
+        </a>
+      </div>
+    </div>
   </div>
 
   <footer>
