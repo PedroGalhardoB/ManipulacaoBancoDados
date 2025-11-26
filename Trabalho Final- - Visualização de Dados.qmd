@@ -1,0 +1,1247 @@
+---
+title: "Visualização de Dados"
+author: "Amanda Cedro, Elisa Amorim, Luiz Fernando e Pedro Galhardo"
+format: 
+  revealjs:
+    theme: moon
+    slide-number: true
+    transition: fade
+editor: visual
+---
+
+# O Que é Vizualização de Dados?
+
+-   Um grande número de informações torna difícil a leitura e compreensão de dados.
+-   A visualização de dados visa facilitar o entendimento e obter insights.
+
+## Como Pode Nos Ajudar?
+
+A visualização de dados pode nos auxiliar de diversas maneiras, como:
+
+-   Identificação de padrões: Revelando tendências, outliers e correlações ocultas em dados grandes.
+
+-   Comunicação: Os gráficos resumem informações de maneira que a visualização seja fácil.
+
+-   Tomada de decisão: Facilitam a visualização e por isso, torna mais fácil a escolha de decisões. Como as variáveis a serem analisadas em gráficos, por exemplo.
+
+## Formas Comuns:
+
+-   Barra
+-   Boxplot
+-   Correlação
+-   Linhas
+-   Mapa de calor
+-   Histograma
+-   Setor
+
+## Boas Práticas:
+
+As melhores coisas a se fazer para ter uma boa visualização é a simplicidade com gráficos, clareza com informações, precisão na apresentação de dados, escolha adequada de gráfico, acessibilidade a todas as pessoas e preferência por códigos enxutos e rápidos.
+
+## Plotagem de Gráficos:
+
+Para a criação de dados é preciso de 4 coisas essenciais:
+
+-   Dados no formato de data frames ( informação a ser utilizada para fazer o gráfico)
+
+-   O mapeamento do gráfico a ser utilizado (mapeamento entre os dados e a estética)
+
+-   Construção gráfica geometricamente (geometria a ser empregada na construção do gráfico)
+
+-   Gramática de gráficos: transformações estatísticas, escalas e facetas, sistema de coordenadas e temas
+
+## Plotagem de Gráficos:
+
+É importante seguir boas práticas na criação de gráficos para que eles possam cumprir sua função de facilitar a visualização e o entendimento do conjunto de dados.
+
+## Nosso Banco de Dados:
+
+Informações sobre o banco de dados:
+
+-   O banco "Google Play Store Apps" foi retirado da plataforma keagle e o link pode ser acessado nos slides anteriores
+
+-   Realizamos uma análise comparativa e técnica explorando três linguagens de programação distintas: Python, R e Julia.
+
+## O banco de dados é composto por dois arquivos principais:
+
+-   googleplaystore.csv: fornece métricas técnicas e de mercado sobre os aplicativos, incluindo categorias, notas médias (Rating), número de avaliações (Reviews), tamanho e preço.
+
+-   googleplaystore_user_reviews.csv : contém avaliações qualitativas processadas com análise de sentimento e métricas de polaridade .
+
+## Etapas de Preparação:
+
+O projeto implementa uma etapa rigorosa de limpeza e pré-processamento de dados replicada nas três linguagens. Para isso foi feito:
+
+-   Remoção de um erro conhecido no dataset onde uma linha apresenta a categoria deslocada "1.9"
+
+-   Conversão de tipos de dados essenciais (transformação das colunas de instalações e preços para valores numéricos, removendo caracteres especiais como "+" e "\$").
+
+## Etapas de Preparação:
+-   Aplicação de um tratamento à coluna de tamanho dos aplicativos, unificando as unidades de medida que variam entre Megabytes e Kilobytes.
+
+-   Cruzamento dos dados dos aplicativos com as avaliações dos usuários através de uma junção (join) baseada no nome do aplicativo, permitindo correlacionar categorias de mercado com a satisfação do usuário.
+
+## Sobre os Gráficos:
+
+A visualização dos dados é estruturada em cinco gráficos principais que narram o comportamento do mercado de aplicativos.
+
+-   Histograma combinado com uma curva de densidade:investiga a distribuição da qualidade geral dos apps através dos "Ratings", revelando a tendência das notas atribuídas pelos usuários.
+
+-   Gráfico de barras: identifica os nichos de mercado dominantes, que exibe as 10 categorias com maior volume de aplicativos.
+
+## Sobre os Gráficos:
+
+-   Correlação: mostra a profundidade estatística do estudo correlacionando o volume de reviews (em escala logarítmica) com a nota dos aplicativos, incluindo o cálculo do coeficiente de Pearson e do valor-p para testar a relação entre popularidade e qualidade percebida.
+
+-   Boxplot: Análise do sentimento das categorias mais populares, visualizando a distribuição da polaridade dos sentimentos (variando de negativo a positivo) nas cinco principais categorias, permitindo observar a variância e a presença de outliers nas opiniões.
+
+
+## PYTHON
+
+# Carregamento e Limpeza de Dados
+
+```{r, include=FALSE}
+library(reticulate)
+reticulate::py_install(c("matplotlib", "seaborn", "pandas", "numpy"))
+```
+
+```{python}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+```
+
+```{python, include=FALSE}
+df_reviews = pd.read_csv("googleplaystore_user_reviews.csv")
+
+df_reviews.head()
+```
+
+```{python}
+import pandas as pd
+import numpy as np
+
+df_apps = pd.read_csv("googleplaystore.csv")
+df_reviews = pd.read_csv("googleplaystore_user_reviews.csv")
+```
+
+```{python, include=FALSE}
+import pandas as pd
+import numpy as np
+
+df_reviews = pd.read_csv("googleplaystore_user_reviews.csv")
+
+df_reviews.head()
+```
+
+```{python,include=FALSE}
+# Limpeza Apps
+df_apps = df_apps[df_apps['Category'] != '1.9']
+
+# Limpar Installs 
+df_apps['Installs'] = df_apps['Installs'].astype(str).str.replace(r'[+,]', '', regex=True)
+df_apps['Installs'] = pd.to_numeric(df_apps['Installs'])
+
+# Limpar Price (remover $)
+df_apps['Price'] = df_apps['Price'].astype(str).str.replace('$', '', regex=False)
+df_apps['Price'] = pd.to_numeric(df_apps['Price'])
+
+# Limpar Reviews
+df_apps['Reviews'] = pd.to_numeric(df_apps['Reviews'])
+
+# Limpar Size
+def clean_size(x):
+    if 'M' in str(x): return float(str(x).replace('M',''))
+    if 'k' in str(x): return float(str(x).replace('k',''))/1024
+    return np.nan
+df_apps['Size'] = df_apps['Size'].apply(clean_size)
+
+# Remover duplicatas
+df_apps.drop_duplicates(subset='App', inplace=True)
+
+# Limpeza Reviews (remover nulos para análise)
+df_reviews.dropna(subset=['Sentiment_Polarity', 'Translated_Review'], inplace=True)
+
+# Join para análise de sentimento (apenas apps que temos dados de categoria)
+df_merged = pd.merge(df_apps[['App', 'Category']], df_reviews, on='App', how='inner')
+
+df_apps['Rating'] = pd.to_numeric(df_apps['Rating'], errors='coerce')
+```
+
+# Geração dos Gráficos
+
+## Código A:
+
+```{python, echo=TRUE}
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+sns.set_theme(style="whitegrid")
+plt.rcParams['figure.figsize'] = (10, 6)
+
+plt.figure()
+
+sns.histplot(df_apps['Rating'].dropna(), bins=20, kde=True, color='skyblue')
+
+plt.title('Distribuição dos Ratings dos Apps')
+plt.xlabel('Rating')
+plt.ylabel('Frequência')
+
+plt.savefig('grafico_a_histograma_rating.png')
+#plt.show()
+```
+
+## Gráfico A - Histograma de Ratings:
+
+```{python, echo=FALSE}
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+sns.set_theme(style="whitegrid")
+plt.rcParams['figure.figsize'] = (10, 6)
+
+plt.figure()
+
+sns.histplot(df_apps['Rating'].dropna(), bins=20, kde=True, color='skyblue')
+
+plt.title('Distribuição dos Ratings dos Apps')
+plt.xlabel('Rating')
+plt.ylabel('Frequência')
+
+plt.savefig('grafico_a_histograma_rating.png')
+plt.show()
+```
+
+## Código B:
+
+```{python, echo=TRUE}
+plt.figure()
+top_categories = df_apps['Category'].value_counts().nlargest(10).index
+sns.countplot(data=df_apps[df_apps['Category'].isin(top_categories)], 
+              y='Category', 
+              order=top_categories, 
+              palette='viridis')
+plt.title('Top 10 Categorias de Apps')
+plt.xlabel('Quantidade de Apps')
+plt.ylabel('Categoria')
+plt.savefig('grafico_b_barras_categorias.png')
+
+#plt.show()
+```
+
+## Gráfico B - Top 10 Categorias:
+
+```{python, echo=FALSE}
+plt.figure()
+top_categories = df_apps['Category'].value_counts().nlargest(10).index
+sns.countplot(data=df_apps[df_apps['Category'].isin(top_categories)], 
+              y='Category', 
+              order=top_categories, 
+              palette='viridis')
+plt.title('Top 10 Categorias de Apps')
+plt.xlabel('Quantidade de Apps')
+plt.ylabel('Categoria')
+plt.savefig('grafico_b_barras_categorias.png')
+
+plt.show()
+```
+
+## Código C:
+
+```{python, echo=TRUE}
+from scipy import stats 
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
+
+df_apps = pd.read_csv("googleplaystore.csv")
+
+# Limpeza  necessária para o gráfico
+df_apps = df_apps[df_apps['Category'] != '1.9']
+df_apps['Reviews'] = pd.to_numeric(df_apps['Reviews'])
+df_apps['Rating'] = pd.to_numeric(df_apps['Rating'])
+df_apps.drop_duplicates(subset='App', inplace=True)
+
+df_clean = df_apps.dropna(subset=['Rating', 'Reviews'])
+
+df_clean = df_clean.copy() 
+df_clean['Log_Reviews'] = np.log10(df_clean['Reviews'])
+
+corr, p_value = stats.pearsonr(df_clean['Log_Reviews'], df_clean['Rating'])
+
+plt.figure(figsize=(10, 6))
+
+ax = sns.regplot(data=df_clean, x='Log_Reviews', y='Rating',
+                 scatter_kws={'alpha': 0.2, 's': 15, 'color': '#6a0dad'}, 
+                 line_kws={'color': 'orange', 'linewidth': 2})
+
+texto_stats = f'Correlação (r): {corr:.3f}\nP-valor: {p_value:.1e}'
+
+plt.text(0.02, 0.95, texto_stats, transform=ax.transAxes, fontsize=12,
+         verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='gray'))
+
+plt.title('Correlação: Volume de Reviews (Log) vs Rating\nCom Linha de Tendência', fontsize=14)
+plt.xlabel('Log10(Reviews) -> (Ex: 6.0 = 1 Milhão)', fontsize=11)
+plt.ylabel('Rating (1-5)', fontsize=11)
+plt.grid(True, linestyle='--', alpha=0.5)
+
+plt.tight_layout()
+plt.savefig('grafico_correlacao_aprimorado.png')
+#plt.show()
+```
+
+## Gráfico C - Correlação:
+
+```{python, echo=FALSE}
+from scipy import stats 
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
+
+df_apps = pd.read_csv("googleplaystore.csv")
+
+# Limpeza  necessária para o gráfico
+df_apps = df_apps[df_apps['Category'] != '1.9']
+df_apps['Reviews'] = pd.to_numeric(df_apps['Reviews'])
+df_apps['Rating'] = pd.to_numeric(df_apps['Rating'])
+df_apps.drop_duplicates(subset='App', inplace=True)
+
+df_clean = df_apps.dropna(subset=['Rating', 'Reviews'])
+
+df_clean = df_clean.copy() 
+df_clean['Log_Reviews'] = np.log10(df_clean['Reviews'])
+
+corr, p_value = stats.pearsonr(df_clean['Log_Reviews'], df_clean['Rating'])
+
+plt.figure(figsize=(10, 6))
+
+ax = sns.regplot(data=df_clean, x='Log_Reviews', y='Rating',
+                 scatter_kws={'alpha': 0.2, 's': 15, 'color': '#6a0dad'}, 
+                 line_kws={'color': 'orange', 'linewidth': 2})
+
+texto_stats = f'Correlação (r): {corr:.3f}\nP-valor: {p_value:.1e}'
+
+plt.text(0.02, 0.95, texto_stats, transform=ax.transAxes, fontsize=12,
+         verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='gray'))
+
+plt.title('Correlação: Volume de Reviews (Log) vs Rating\nCom Linha de Tendência', fontsize=14)
+plt.xlabel('Log10(Reviews) -> (Ex: 6.0 = 1 Milhão)', fontsize=11)
+plt.ylabel('Rating (1-5)', fontsize=11)
+plt.grid(True, linestyle='--', alpha=0.5)
+
+plt.tight_layout()
+plt.savefig('grafico_correlacao_aprimorado.png')
+plt.show()
+```
+
+## Código D:
+
+```{python, echo=TRUE}
+plt.figure(figsize=(12, 6))
+
+top_5_cats = df_apps['Category'].value_counts().nlargest(5).index
+df_subset = df_merged[df_merged['Category'].isin(top_5_cats)]
+
+sns.boxplot(data=df_subset, x='Category', y='Sentiment_Polarity', palette='Set2')
+plt.title('Distribuição de Sentimento (Polaridade) nas Top 5 Categorias')
+plt.xlabel('Categoria')
+plt.ylabel('Polaridade do Sentimento (-1 a 1)')
+plt.axhline(0, ls='--', color='grey') # Linha neutra
+plt.savefig('grafico_d_boxplot_sentimento.png')
+
+#plt.show()
+```
+
+## Gráfico D - Boxplot de Sentimento por Categoria:
+
+```{python, echo=FALSE}
+plt.figure(figsize=(12, 6))
+
+top_5_cats = df_apps['Category'].value_counts().nlargest(5).index
+df_subset = df_merged[df_merged['Category'].isin(top_5_cats)]
+
+sns.boxplot(data=df_subset, x='Category', y='Sentiment_Polarity', palette='Set2')
+plt.title('Distribuição de Sentimento (Polaridade) nas Top 5 Categorias')
+plt.xlabel('Categoria')
+plt.ylabel('Polaridade do Sentimento (-1 a 1)')
+plt.axhline(0, ls='--', color='grey') # Linha neutra
+plt.savefig('grafico_d_boxplot_sentimento.png')
+
+plt.show()
+```
+
+## R
+
+```{r, include=FALSE}
+library(tidyverse)
+
+df_apps_r <- read_csv("googleplaystore.csv", col_types = cols())
+df_reviews_r <- read_csv("googleplaystore_user_reviews.csv", col_types = cols())
+
+cat("--- GLIMPSE: APPS ---\n")
+glimpse(df_apps_r)
+
+cat("\n--- HEAD: APPS ---\n")
+print(head(df_apps_r))
+
+cat("\n--- UNIQUE: Installs (Amostra) ---\n")
+print(head(unique(df_apps_r$Installs), 10))
+
+cat("\n--- UNIQUE: Price (Amostra) ---\n")
+print(head(unique(df_apps_r$Price), 10))
+
+cat("\n--- UNIQUE: Size (Amostra) ---\n")
+print(head(unique(df_apps_r$Size), 10))
+
+cat("\n--- INFO: REVIEWS (Nulos) ---\n")
+print(colSums(is.na(df_reviews_r)))
+
+df_apps_clean_r <- df_apps_r %>%
+    filter(Category != '1.9') %>%
+  mutate(
+    Installs = str_remove_all(Installs, "[+,]") %>% as.numeric(),
+    Price = str_remove_all(Price, "\\$") %>% as.numeric(),
+    Reviews = as.numeric(Reviews),
+    Size_Num = case_when(
+      str_detect(Size, "M") ~ as.numeric(str_remove(Size, "M")),
+      str_detect(Size, "k") ~ as.numeric(str_remove(Size, "k")) / 1024,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+
+    mutate(Size = Size_Num) %>%
+      select(-Size_Num) %>%
+       distinct(App, .keep_all = TRUE)
+
+df_reviews_clean_r <- df_reviews_r %>%
+  drop_na(Sentiment_Polarity, Translated_Review)
+
+df_merged_r <- df_apps_clean_r %>%
+  select(App, Category) %>%
+  inner_join(df_reviews_clean_r, by = "App")
+```
+
+## Código A - Distribuição dos Ratings dos Apps:
+
+```{r, echo=TRUE}
+# Calcular a largura do bin para ajustar a curva:5-1)/20 = 0.2
+bin_width <- 0.2 
+n_obs <- sum(!is.na(df_apps_clean_r$Rating)) 
+
+ggplot(df_apps_clean_r, aes(x = Rating)) +
+    geom_histogram(aes(y = after_stat(count)), 
+                 binwidth = bin_width, 
+                 fill = "skyblue", 
+                 color = "white", 
+                 alpha = 0.6) + 
+    geom_density(aes(y = after_stat(density) * n_obs * bin_width), 
+               color = "skyblue", 
+               linewidth = 1) +
+    labs(title = "Distribuição dos Ratings dos Apps",
+       x = "Rating",
+       y = "Frequência") +
+    theme_light() +
+    theme(panel.grid.major = element_line(color = "grey90"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "grey80", fill = NA))
+```
+
+## Gráfico A - Distribuição dos Ratings dos Apps:
+
+```{r, echo=FALSE}
+bin_width <- 0.2 
+n_obs <- sum(!is.na(df_apps_clean_r$Rating)) 
+ggplot(df_apps_clean_r, aes(x = Rating)) +
+    geom_histogram(aes(y = after_stat(count)), 
+                 binwidth = bin_width, 
+                 fill = "skyblue", 
+                 color = "white", 
+                 alpha = 0.6) + 
+    geom_density(aes(y = after_stat(density) * n_obs * bin_width), 
+               color = "skyblue", 
+               linewidth = 1) +
+    labs(title = "Distribuição dos Ratings dos Apps",
+       x = "Rating",
+       y = "Frequência") +
+    theme_light() +
+    theme(panel.grid.major = element_line(color = "grey90"),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "grey80", fill = NA))
+```
+
+## Código B:
+
+```{r, echo=TRUE}
+library(viridis) 
+
+top_10_categories_r <- df_apps_clean_r %>%
+  count(Category, sort = TRUE) %>%
+  slice_head(n = 10)
+
+df_plot_r <- df_apps_clean_r %>%
+  filter(Category %in% top_10_categories_r$Category)
+
+plt_r <- ggplot(df_plot_r, aes(y = fct_rev(fct_infreq(Category)), fill = Category)) + 
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  labs(
+    title = "Top 10 Categorias de Apps",
+    x = "Quantidade de Apps",
+    y = "Categoria"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none") 
+
+print(plt_r)
+
+
+ggsave("grafico_b_barras_categorias_r.png", plot = plt_r, width = 8, height = 6)
+```
+
+## Gráfico B - Top 10 Categorias de Apps:
+
+```{r, echo=FALSE}
+library(viridis) 
+
+top_10_categories_r <- df_apps_clean_r %>%
+  count(Category, sort = TRUE) %>%
+  slice_head(n = 10)
+
+df_plot_r <- df_apps_clean_r %>%
+  filter(Category %in% top_10_categories_r$Category)
+
+plt_r <- ggplot(df_plot_r, aes(y = fct_rev(fct_infreq(Category)), fill = Category)) + 
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  labs(
+    title = "Top 10 Categorias de Apps",
+    x = "Quantidade de Apps",
+    y = "Categoria"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none") 
+
+print(plt_r)
+
+
+ggsave("grafico_b_barras_categorias_r.png", plot = plt_r, width = 8, height = 6)
+```
+
+## Código C:
+
+```{r, echo=TRUE}
+library(tidyverse)
+
+df_scatter <- df_apps_clean_r %>%
+  filter(!is.na(Rating), !is.na(Reviews)) %>%
+  mutate(Log_Reviews = log10(Reviews))
+
+stats_result <- cor.test(df_scatter$Log_Reviews, df_scatter$Rating, method = "pearson")
+corr_val <- stats_result$estimate
+p_val <- stats_result$p.value
+texto_stats <- sprintf("Correlação (r): %.3f\nP-valor: %.1e", corr_val, p_val)
+
+ggplot(df_scatter, aes(x = Log_Reviews, y = Rating)) +
+    geom_point(alpha = 0.2, size = 1.5, color = "#6a0dad") +
+    geom_smooth(method = "lm", color = "orange", linewidth = 1, se = TRUE) +
+    annotate("label", 
+           x = Inf, y = -Inf,  
+           label = texto_stats,
+           hjust = 1.05,        
+           vjust = -0.5,        
+           size = 4, 
+           fill = "white", alpha = 0.9, color = "gray20") +
+    labs(title = "Correlação: Volume de Reviews (Log) vs Rating",
+       subtitle = "Com Linha de Tendência",
+       x = "Log10(Reviews) -> (Ex: 6.0 = 1 Milhão)",
+       y = "Rating (1-5)") +
+  
+  theme_light() +
+  
+  theme(panel.grid.major = element_line(linetype = "dashed"))
+```
+
+## Grafico C - Correlação: Volume de Reviews (Log) vs Rating:
+
+```{r, echo=FALSE}
+library(tidyverse)
+
+df_scatter <- df_apps_clean_r %>%
+  filter(!is.na(Rating), !is.na(Reviews)) %>%
+  mutate(Log_Reviews = log10(Reviews))
+
+stats_result <- cor.test(df_scatter$Log_Reviews, df_scatter$Rating, method = "pearson")
+corr_val <- stats_result$estimate
+p_val <- stats_result$p.value
+texto_stats <- sprintf("Correlação (r): %.3f\nP-valor: %.1e", corr_val, p_val)
+
+ggplot(df_scatter, aes(x = Log_Reviews, y = Rating)) +
+    geom_point(alpha = 0.2, size = 1.5, color = "#6a0dad") +
+    geom_smooth(method = "lm", color = "orange", linewidth = 1, se = TRUE) +
+    annotate("label", 
+           x = Inf, y = -Inf,  
+           label = texto_stats,
+           hjust = 1.05,        
+           vjust = -0.5,        
+           size = 4, 
+           fill = "white", alpha = 0.9, color = "gray20") +
+    labs(title = "Correlação: Volume de Reviews (Log) vs Rating",
+       subtitle = "Com Linha de Tendência",
+       x = "Log10(Reviews) -> (Ex: 6.0 = 1 Milhão)",
+       y = "Rating (1-5)") +
+  
+  theme_light() +
+  
+  theme(panel.grid.major = element_line(linetype = "dashed"))
+```
+
+## Código D:
+
+```{r, echo=TRUE}
+top_5_categories_r <- df_apps_clean_r %>%
+  count(Category, sort = TRUE) %>%
+  slice_head(n = 5) %>%
+  pull(Category) 
+
+df_subset_r <- df_merged_r %>%
+  filter(Category %in% top_5_categories_r)
+
+plt_boxplot_r <- ggplot(df_subset_r, aes(x = Category, y = Sentiment_Polarity, fill = Category)) +
+  geom_boxplot(alpha = 0.8, outlier.shape = 1) + 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey", size = 1) +
+  labs(
+    title = "Distribuição de Sentimento (Polaridade) nas Top 5 Categorias",
+    x = "Categoria",
+    y = "Polaridade do Sentimento (-1 a 1)"
+  ) +
+  
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2") + 
+  theme(legend.position = "none") 
+
+print(plt_boxplot_r)
+```
+
+## Gráfico D - Distribuição de Sentimento (Polaridade) nas Top 5 Categorias:
+
+```{r, echo=FALSE}
+top_5_categories_r <- df_apps_clean_r %>%
+  count(Category, sort = TRUE) %>%
+  slice_head(n = 5) %>%
+  pull(Category) 
+
+df_subset_r <- df_merged_r %>%
+  filter(Category %in% top_5_categories_r)
+
+plt_boxplot_r <- ggplot(df_subset_r, aes(x = Category, y = Sentiment_Polarity, fill = Category)) +
+  geom_boxplot(alpha = 0.8, outlier.shape = 1) + 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey", size = 1) +
+  labs(
+    title = "Distribuição de Sentimento (Polaridade) nas Top 5 Categorias",
+    x = "Categoria",
+    y = "Polaridade do Sentimento (-1 a 1)"
+  ) +
+  
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2") + 
+  theme(legend.position = "none") 
+
+print(plt_boxplot_r)
+```
+
+## JULIA:
+
+```{r}
+#install.packages("JuliaCall")
+```
+
+```{r, include=FALSE}
+library(JuliaCall)
+
+Sys.setenv(JULIA_HOME = "D:/Users/Pedro/AppData/Local/Programs/Julia-1.12.1/bin")
+julia_setup()
+```
+
+```{julia}
+using Pkg
+Pkg.add(["DataFrames", "CSV", "StatsPlots", "Statistics","KernelDensity", "GLM", "HypothesisTests"])
+
+using DataFrames
+using CSV
+using StatsPlots
+using Statistics
+```
+
+```{julia, include=FALSE}
+df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+df_reviews_j = CSV.read("googleplaystore_user_reviews.csv", DataFrame)
+
+println("--- INFO: APPS (Primeiras linhas) ---")
+first(df_apps_j, 5) |> println
+
+filter!(row -> row.Category != "1.9", df_apps_j)
+
+function clean_installs_j(val)
+    try
+        return parse(Int, replace(string(val), r"[+,]" => ""))
+    catch
+        return missing
+    end
+end
+
+function clean_price_j(val)
+    try
+        return parse(Float64, replace(string(val), "\$" => ""))
+    catch
+        return 0.0
+    end
+end
+
+function clean_size_j(val)
+    s = string(val)
+    if occursin("M", s)
+        return parse(Float64, replace(s, "M" => ""))
+    elseif occursin("k", s)
+        return parse(Float64, replace(s, "k" => "")) / 1024
+    else
+        return missing 
+    end
+end
+
+function clean_reviews_j(val)
+    try
+        return parse(Int, string(val))
+    catch e 
+        return 0
+    end
+end
+
+transform!(df_apps_j, 
+    :Installs => ByRow(clean_installs_j) => :Installs_Clean,
+    :Price => ByRow(clean_price_j) => :Price_Clean,
+    :Size => ByRow(clean_size_j) => :Size_Clean,
+    :Reviews => ByRow(clean_reviews_j) => :Reviews_Clean 
+)
+
+unique!(df_apps_j, :App)
+
+df_apps_clean_j = select(df_apps_j, :App, :Category, :Installs_Clean, :Price_Clean, :Size_Clean, :Reviews_Clean)
+
+df_merged_j = innerjoin(
+    select(df_apps_clean_j, :App, :Category),
+    df_reviews_j,
+    on = :App,
+    makeunique=true
+)
+
+dropmissing!(df_reviews_j, [:Sentiment_Polarity, :Translated_Review])
+```
+
+## Código A:
+
+```{julia, echo=TRUE}
+using DataFrames, CSV, StatsPlots, Statistics, KernelDensity
+
+if !@isdefined(df_apps_j)
+    df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+end
+
+unique!(df_apps_j, :App);
+
+ratings_raw = filter(r -> r.Category != "1.9", df_apps_j);
+
+parsed_ratings = tryparse.(Float64, string.(ratings_raw.Rating));
+
+ratings_clean = [x for x in parsed_ratings if !isnothing(x) && !isnan(x)];
+ratings_clean = Vector{Float64}(ratings_clean);
+
+bin_width = 0.2
+n_obs = length(ratings_clean);
+
+k = kde(ratings_clean);
+
+y_scaled = k.density .* n_obs .* bin_width;
+
+p = begin
+    histogram(ratings_clean,
+        bins = 1:bin_width:5.2,
+        color = :skyblue,
+        linecolor = :white,
+        fillalpha = 0.6,
+        label = "",
+        
+        title = "Distribuição dos Ratings dos Apps",
+        xlabel = "Rating",
+        ylabel = "Frequência",
+        
+        grid = true,
+        gridstyle = :dash,
+        gridalpha = 0.5,
+        background_color = :white,
+        size = (800, 500)
+    )
+
+    plot!(k.x, y_scaled,
+        color = :skyblue,
+        linewidth = 2,
+        label = ""
+    )
+end; # Ponto e vírgula aqui para não imprimir "Plot{...}"
+
+```
+
+## Gráfico A - Distribuição dos Ratings dos Apps:
+
+```{julia, echo=FALSE}
+using DataFrames, CSV, StatsPlots, Statistics, KernelDensity
+
+if !@isdefined(df_apps_j)
+    df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+end
+
+unique!(df_apps_j, :App);
+
+ratings_raw = filter(r -> r.Category != "1.9", df_apps_j);
+
+parsed_ratings = tryparse.(Float64, string.(ratings_raw.Rating));
+
+ratings_clean = [x for x in parsed_ratings if !isnothing(x) && !isnan(x)];
+ratings_clean = Vector{Float64}(ratings_clean);
+
+bin_width = 0.2
+n_obs = length(ratings_clean);
+
+k = kde(ratings_clean);
+
+y_scaled = k.density .* n_obs .* bin_width;
+
+p = begin
+    histogram(ratings_clean,
+        bins = 1:bin_width:5.2,
+        color = :skyblue,
+        linecolor = :white,
+        fillalpha = 0.6,
+        label = "",
+        
+        title = "Distribuição dos Ratings dos Apps",
+        xlabel = "Rating",
+        ylabel = "Frequência",
+        
+        grid = true,
+        gridstyle = :dash,
+        gridalpha = 0.5,
+        background_color = :white,
+        size = (800, 500)
+    )
+
+    plot!(k.x, y_scaled,
+        color = :skyblue,
+        linewidth = 2,
+        label = ""
+    )
+end; # Ponto e vírgula aqui para não imprimir "Plot{...}"
+
+```
+
+## Código B:
+
+```{julia, echo=TRUE}
+using DataFrames, CSV, StatsPlots, Statistics
+
+if !@isdefined(df_apps_j)
+    df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+    unique!(df_apps_j, :App) 
+    filter!(row -> row.Category != "1.9", df_apps_j)
+end
+
+cat_counts = combine(groupby(df_apps_j, :Category), nrow => :Count);
+
+sort!(cat_counts, :Count, rev=true);
+top_10 = first(cat_counts, 10);
+
+sort!(top_10, :Count);
+
+p_bar = bar(top_10.Category, top_10.Count,
+    permute = (:x, :y),      
+    color = 1:10,
+    palette = :viridis,
+    title = "Top 10 Categorias de Apps",
+    xlabel = "Quantidade de Apps",
+    ylabel = "Categoria",
+    legend = false,
+    grid = true,
+    gridstyle = :dash,
+    gridalpha = 0.5,
+    size = (800, 600),
+    left_margin = 15Plots.mm,
+    bottom_margin = 5Plots.mm
+);
+
+p_bar
+```
+
+## Gráfico B - Top 10 Categorias de Apps:
+
+```{julia, echo=FALSE}
+using DataFrames, CSV, StatsPlots, Statistics
+
+if !@isdefined(df_apps_j)
+    df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+    unique!(df_apps_j, :App) 
+    filter!(row -> row.Category != "1.9", df_apps_j)
+end
+
+cat_counts = combine(groupby(df_apps_j, :Category), nrow => :Count);
+
+sort!(cat_counts, :Count, rev=true);
+top_10 = first(cat_counts, 10);
+
+sort!(top_10, :Count);
+
+p_bar = bar(top_10.Category, top_10.Count,
+    permute = (:x, :y),      
+    color = 1:10,
+    palette = :viridis,
+    title = "Top 10 Categorias de Apps",
+    xlabel = "Quantidade de Apps",
+    ylabel = "Categoria",
+    legend = false,
+    grid = true,
+    gridstyle = :dash,
+    gridalpha = 0.5,
+    size = (800, 600),
+    left_margin = 15Plots.mm,
+    bottom_margin = 5Plots.mm
+);
+
+p_bar
+```
+
+## Código C:
+
+```{julia, echo=TRUE}
+using DataFrames, CSV, StatsPlots, Statistics, GLM, HypothesisTests
+
+function clean_rating_j(val)
+    try
+        return parse(Float64, string(val))
+    catch
+        return missing
+    end
+end
+
+if !@isdefined(df_apps_j)
+    df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+    filter!(row -> row.Category != "1.9", df_apps_j)
+end
+
+df_plot = select(df_apps_j, :App, :Reviews, :Rating);
+
+transform!(df_plot, :Reviews => ByRow(x -> try parse(Int, string(x)) catch; 0 end) => :Reviews_Clean);
+transform!(df_plot, :Rating => ByRow(clean_rating_j) => :Rating_Clean);
+
+dropmissing!(df_plot, [:Rating_Clean, :Reviews_Clean]);
+filter!(row -> !isnan(row.Rating_Clean) && row.Reviews_Clean > 0, df_plot);
+
+transform!(df_plot, :Reviews_Clean => ByRow(x -> log10(x)) => :Log_Reviews);
+
+ht_test = CorrelationTest(df_plot.Log_Reviews, df_plot.Rating_Clean);
+corr_val = ht_test.r;
+p_val = pvalue(ht_test);
+
+model = lm(@formula(Rating_Clean ~ Log_Reviews), df_plot);
+
+texto_stats = "Correlação (r): $(round(corr_val, digits=3))\nP-valor: $(p_val < 1e-60 ? "< 1e-60" : round(p_val, digits=4))";
+
+p = begin
+    plot_obj = scatter(df_plot.Log_Reviews, df_plot.Rating_Clean,
+        alpha=0.2,
+        color=:purple,
+        markersize=3,
+        markerstrokewidth=0,
+        label="",
+        legend=:none,
+        grid=true,
+        gridstyle=:dash,
+        gridalpha=0.5,
+        size=(800, 500),
+        title="Correlação: Volume de Reviews (Log) vs Rating",
+        xlabel="Log10(Reviews) -> (Ex: 6.0 = 1 Milhão)",
+        ylabel="Rating (1-5)"
+    )
+
+    plot!(plot_obj, df_plot.Log_Reviews, predict(model),
+        color=:orange,
+        linewidth=3,
+        label="Linha de Tendência"
+    )
+
+    x_pos = maximum(df_plot.Log_Reviews)
+    y_pos = minimum(df_plot.Rating_Clean)
+    
+    annotate!(plot_obj, [(x_pos, y_pos, text(texto_stats, 10, :right, :bottom, :grey20))])
+    
+    plot_obj
+end; # Ponto e vírgula aqui oculta o texto descritivo do objeto Plot
+```
+
+## Gráfico C - Correlação: Volume de Reviews (Log) vs Rating:
+
+```{julia, echo=FALSE}
+using DataFrames, CSV, StatsPlots, Statistics, GLM, HypothesisTests
+
+function clean_rating_j(val)
+    try
+        return parse(Float64, string(val))
+    catch
+        return missing
+    end
+end
+
+if !@isdefined(df_apps_j)
+    df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+    filter!(row -> row.Category != "1.9", df_apps_j)
+end
+
+df_plot = select(df_apps_j, :App, :Reviews, :Rating);
+
+transform!(df_plot, :Reviews => ByRow(x -> try parse(Int, string(x)) catch; 0 end) => :Reviews_Clean);
+transform!(df_plot, :Rating => ByRow(clean_rating_j) => :Rating_Clean);
+
+dropmissing!(df_plot, [:Rating_Clean, :Reviews_Clean]);
+filter!(row -> !isnan(row.Rating_Clean) && row.Reviews_Clean > 0, df_plot);
+
+transform!(df_plot, :Reviews_Clean => ByRow(x -> log10(x)) => :Log_Reviews);
+
+ht_test = CorrelationTest(df_plot.Log_Reviews, df_plot.Rating_Clean);
+corr_val = ht_test.r;
+p_val = pvalue(ht_test);
+
+model = lm(@formula(Rating_Clean ~ Log_Reviews), df_plot);
+
+texto_stats = "Correlação (r): $(round(corr_val, digits=3))\nP-valor: $(p_val < 1e-60 ? "< 1e-60" : round(p_val, digits=4))";
+
+p = begin
+    plot_obj = scatter(df_plot.Log_Reviews, df_plot.Rating_Clean,
+        alpha=0.2,
+        color=:purple,
+        markersize=3,
+        markerstrokewidth=0,
+        label="",
+        legend=:none,
+        grid=true,
+        gridstyle=:dash,
+        gridalpha=0.5,
+        size=(800, 500),
+        title="Correlação: Volume de Reviews (Log) vs Rating",
+        xlabel="Log10(Reviews) -> (Ex: 6.0 = 1 Milhão)",
+        ylabel="Rating (1-5)"
+    )
+
+    plot!(plot_obj, df_plot.Log_Reviews, predict(model),
+        color=:orange,
+        linewidth=3,
+        label="Linha de Tendência"
+    )
+
+    x_pos = maximum(df_plot.Log_Reviews)
+    y_pos = minimum(df_plot.Rating_Clean)
+    
+    annotate!(plot_obj, [(x_pos, y_pos, text(texto_stats, 10, :right, :bottom, :grey20))])
+    
+    plot_obj
+end; # Ponto e vírgula aqui oculta o texto descritivo do objeto Plot
+```
+
+## Código D:
+
+```{julia, echo=TRUE}
+using DataFrames, CSV, StatsPlots, Statistics
+
+
+if !@isdefined(df_apps_j)
+    df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+    unique!(df_apps_j, :App) 
+    filter!(row -> row.Category != "1.9", df_apps_j)
+end
+
+if !@isdefined(df_reviews_j)
+    df_reviews_j = CSV.read("googleplaystore_user_reviews.csv", DataFrame, missingstring=["nan", "NaN"])
+end
+
+transform!(df_reviews_j, :Sentiment_Polarity => ByRow(x -> tryparse(Float64, string(x))) => :Polarity_Clean);
+
+filter!(row -> !isnothing(row.Polarity_Clean) && !ismissing(row.Polarity_Clean) && !isnan(row.Polarity_Clean), df_reviews_j);
+
+df_reviews_j.Polarity_Clean = Float64.(df_reviews_j.Polarity_Clean);
+
+dropmissing!(df_reviews_j, [:Translated_Review]);
+
+df_merged = innerjoin(df_apps_j, df_reviews_j, on = :App);
+
+
+cat_counts = combine(groupby(df_merged, :Category), nrow => :Count);
+sort!(cat_counts, :Count, rev=true);
+top_5_names = first(cat_counts, 5).Category;
+
+df_subset = filter(row -> row.Category in top_5_names, df_merged);
+
+
+p_box = begin
+    boxplot(df_subset.Category, df_subset.Polarity_Clean,
+        group = df_subset.Category,
+        palette = :Set2,
+        fillalpha = 0.8,
+        
+        title = "Distribuição de Sentimento nas Top 5 Categorias",
+        xlabel = "Categoria",
+        ylabel = "Polaridade (-1 a 1)",
+        
+        legend = false,
+        size = (1000, 600),
+        grid = true,
+        gridstyle = :dash,
+        
+        left_margin = 10Plots.mm,
+        bottom_margin = 5Plots.mm,
+        
+        outliers = true
+    )
+    
+    hline!([0], 
+        linestyle = :dash, 
+        color = :grey, 
+        linewidth = 2, 
+        label = ""
+    )
+    
+    current()
+end; # ; para não imprimir o texto do objeto Plot
+```
+
+## Gráfico D - Distribuição de Sentimento nas Top 5 Categorias:
+
+```{julia, echo=FALSE}
+using DataFrames, CSV, StatsPlots, Statistics
+
+
+if !@isdefined(df_apps_j)
+    df_apps_j = CSV.read("googleplaystore.csv", DataFrame, missingstring=["NaN", "Varies with device"])
+    unique!(df_apps_j, :App) 
+    filter!(row -> row.Category != "1.9", df_apps_j)
+end
+
+if !@isdefined(df_reviews_j)
+    df_reviews_j = CSV.read("googleplaystore_user_reviews.csv", DataFrame, missingstring=["nan", "NaN"])
+end
+
+transform!(df_reviews_j, :Sentiment_Polarity => ByRow(x -> tryparse(Float64, string(x))) => :Polarity_Clean);
+
+filter!(row -> !isnothing(row.Polarity_Clean) && !ismissing(row.Polarity_Clean) && !isnan(row.Polarity_Clean), df_reviews_j);
+
+df_reviews_j.Polarity_Clean = Float64.(df_reviews_j.Polarity_Clean);
+
+dropmissing!(df_reviews_j, [:Translated_Review]);
+
+df_merged = innerjoin(df_apps_j, df_reviews_j, on = :App);
+
+
+cat_counts = combine(groupby(df_merged, :Category), nrow => :Count);
+sort!(cat_counts, :Count, rev=true);
+top_5_names = first(cat_counts, 5).Category;
+
+df_subset = filter(row -> row.Category in top_5_names, df_merged);
+
+
+p_box = begin
+    boxplot(df_subset.Category, df_subset.Polarity_Clean,
+        group = df_subset.Category,
+        palette = :Set2,
+        fillalpha = 0.8,
+        
+        title = "Distribuição de Sentimento nas Top 5 Categorias",
+        xlabel = "Categoria",
+        ylabel = "Polaridade (-1 a 1)",
+        
+        legend = false,
+        size = (1000, 600),
+        grid = true,
+        gridstyle = :dash,
+        
+        left_margin = 10Plots.mm,
+        bottom_margin = 5Plots.mm,
+        
+        outliers = true
+    )
+    
+    hline!([0], 
+        linestyle = :dash, 
+        color = :grey, 
+        linewidth = 2, 
+        label = ""
+    )
+    
+    current()
+end; # ; para não imprimir o texto do objeto Plot
+```
+
+## Tabela de Comparação do Tempo Decorrido de Cada Linguagem:
+
+```{r, echo=FALSE}
+library(knitr)
+library(kableExtra)
+
+# Criar os dados manualmente
+df_comparativo <- data.frame(
+  Grafico = c("1. Histograma (Ratings)", 
+              "2. Barras (Top Categorias)", 
+              "3. Scatter Plot (Correlação)", 
+              "4. Boxplot / Densidade", 
+              "MÉDIA GERAL"),
+   
+  Python = c("0.4921 s", "0.2642 s", "0.9705 s", "0.4002 s", "0.5318 s"),
+  R      = c("0.5331 s", "0.8545 s", "1.4402 s", "0.4384 s", "0.8166 s"),
+  Julia  = c("2.0860 s", "1.1530 s", "2.7330 s", "2.8860 s", "2.2145 s")
+)
+
+# Renomear colunas
+colnames(df_comparativo) <- c("Tipo de Gráfico", 
+                              "Python (Matplotlib)", 
+                              "R (ggplot2)", 
+                              "Julia (Plots.jl)")
+
+# Gerar a tabela com dimensões reduzidas
+kable(df_comparativo, 
+      align = "c", 
+      caption = "Comparativo de Tempo de Execução (Segundos)") %>%
+  kable_styling(
+      full_width = FALSE, 
+      position = "center", 
+      font_size = 20,                  # <--- Reduz o tamanho da fonte
+      bootstrap_options = "condensed"  # <--- Reduz o espaçamento interno
+  ) %>%
+  row_spec(0:nrow(df_comparativo), color = "white") # Sugestão: use branco para o tema Moon
+```
+
+
+## Conclusão:
+
+Este trabalho constitui um exercício prático de "poliglotismo" em ciência de dados, demonstrando a equivalência analítica entre diferentes linguagens como pandas e seaborn em Python, tidyverse e ggplot2 em R, e DataFrames com StatsPlots em Julia.
+
+## Conclusão:
+
+A análise comparativa de desempenho revela que, o tempo em Python apresentou maior otimização e eficiência. Julia registrou o maior tempo de execução, e R permanece em uma posição intermediária. Embora Julia seja projetada para computação de alta performance, essa vantagem não se materializou devido à dimensão reduzida do banco de dados utilizado. Além disso, notaram-se limitações na visualização de dados nesta linguagem, exemplificadas pela inconsistência na paleta de cores `viridis` no Gráfico B.
+
+## Conclusão:
+
+Apesar de não ter o tempo mais rápido, R consolidou-se como uma ferramenta superior para a plotagem de gráficos. Sua sintaxe intuitiva e funções enxutas  facilitam mudanças estéticas.
+Conclui-se que Python seria um meio termo entre R e Julia. O tempo é otimizado, a plotagem de gráfico não é tão simples quanto R, mas é mais funcional que Julia, ainda assim, a leitura para importação de banco de dados foi o momento onde houve maior latência.
+
+
